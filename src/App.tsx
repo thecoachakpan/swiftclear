@@ -492,18 +492,6 @@ export default function App() {
           const data = await response.json();
           extracted = data.extracted;
           routeStatus = data.routeStatus;
-        } else {
-          // Try backup API route
-          const backupRes = await fetch('/api/analyze-trade', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query }),
-          });
-          if (backupRes.ok) {
-            const data = await backupRes.json();
-            extracted = data.extracted;
-            routeStatus = data.routeStatus;
-          }
         }
       } catch (apiErr) {
         console.warn("Server API call error, engaging local smart parser fallback:", apiErr);
