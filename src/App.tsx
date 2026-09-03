@@ -43,31 +43,31 @@ interface WebMCPLog {
 }
 
 export default function App() {
-  // 1. Core State
-  const [selectedCorridorId, setSelectedCorridorId] = useState('kano_cotonou');
-  const [selectedCommodityKey, setSelectedCommodityKey] = useState('hibiscus');
-  const [quantity, setQuantity] = useState(100); // Package count
-  const [declaredValueUsd, setDeclaredValueUsd] = useState(5000);
+  // 1. Core State (Initializes to clean reset form state)
+  const [selectedCorridorId, setSelectedCorridorId] = useState('');
+  const [selectedCommodityKey, setSelectedCommodityKey] = useState('');
+  const [quantity, setQuantity] = useState(0); // Package count
+  const [declaredValueUsd, setDeclaredValueUsd] = useState(0);
   const [useAfCFTA, setUseAfCFTA] = useState(true);
   const [manifestStatus, setManifestStatus] = useState<'Draft' | 'Validated' | 'Submitted'>('Draft');
   
   // Dynamic trade and routing states
-  const [origin, setOrigin] = useState('Nigeria (Kano)');
-  const [destination, setDestination] = useState('Benin (Cotonou)');
-  const [commodity, setCommodity] = useState('Dried Hibiscus Flowers (Zobo)');
-  const [hsCode, setHsCode] = useState('1211.90.00');
-  const [baseDutyRate, setBaseDutyRate] = useState(20);
+  const [origin, setOrigin] = useState('No route selected');
+  const [destination, setDestination] = useState('No route selected');
+  const [commodity, setCommodity] = useState('No commodity selected');
+  const [hsCode, setHsCode] = useState('N/A');
+  const [baseDutyRate, setBaseDutyRate] = useState(0);
   const [afcftaDutyRate, setAfcftaDutyRate] = useState(0);
-  const [vatRate, setVatRate] = useState(7.5);
-  const [unit, setUnit] = useState('bag (25kg)');
-  const [averageWeightPerPackageKg, setAverageWeightPerPackageKg] = useState(25);
-  const [distanceKm, setDistanceKm] = useState(980);
-  const [avgTransitDays, setAvgTransitDays] = useState(3);
-  const [borderPort, setBorderPort] = useState('Seme-Krake Joint Border Post');
-  const [handlingFeeUsd, setHandlingFeeUsd] = useState(150);
-  const [securityFeeUsd, setSecurityFeeUsd] = useState(45);
+  const [vatRate, setVatRate] = useState(0);
+  const [unit, setUnit] = useState('N/A');
+  const [averageWeightPerPackageKg, setAverageWeightPerPackageKg] = useState(0);
+  const [distanceKm, setDistanceKm] = useState(0);
+  const [avgTransitDays, setAvgTransitDays] = useState(0);
+  const [borderPort, setBorderPort] = useState('N/A');
+  const [handlingFeeUsd, setHandlingFeeUsd] = useState(0);
+  const [securityFeeUsd, setSecurityFeeUsd] = useState(0);
   const [escortFeeUsd, setEscortFeeUsd] = useState(0);
-  const [region, setRegion] = useState('ECOWAS');
+  const [region, setRegion] = useState('N/A');
 
   // Route validation alert state
   const [routeAlert, setRouteAlert] = useState<{
@@ -1080,29 +1080,27 @@ ${routeStatus.exists
                 <button
                   onClick={() => {
                     setManifestStatus('Draft');
-                    setSelectedCorridorId('kano_cotonou');
-                    setSelectedCommodityKey('hibiscus');
-                    setQuantity(100);
-                    setDeclaredValueUsd(5000);
+                    setSelectedCorridorId('');
+                    setSelectedCommodityKey('');
+                    setQuantity(0);
+                    setDeclaredValueUsd(0);
                     setUseAfCFTA(true);
-                    const corridor = TRADE_CORRIDORS[0];
-                    setOrigin(corridor.origin);
-                    setDestination(corridor.destination);
-                    setDistanceKm(corridor.distanceKm);
-                    setAvgTransitDays(corridor.avgTransitDays);
-                    setBorderPort(corridor.borderPort);
-                    setHandlingFeeUsd(corridor.handlingFeeUsd);
-                    setSecurityFeeUsd(corridor.securityFeeUsd);
-                    setEscortFeeUsd(corridor.escortFeeUsd || 0);
-                    setRegion(corridor.region);
-                    const item = TARIFF_DATABASE['hibiscus'];
-                    setCommodity(item.item);
-                    setHsCode(item.hsCode);
-                    setBaseDutyRate(item.baseDutyRate);
-                    setAfcftaDutyRate(item.afcftaDutyRate);
-                    setVatRate(item.vat);
-                    setUnit(item.unit);
-                    setAverageWeightPerPackageKg(item.averageWeightPerPackageKg);
+                    setOrigin('No route selected');
+                    setDestination('No route selected');
+                    setCommodity('No commodity selected');
+                    setHsCode('N/A');
+                    setBaseDutyRate(0);
+                    setAfcftaDutyRate(0);
+                    setVatRate(0);
+                    setUnit('N/A');
+                    setAverageWeightPerPackageKg(0);
+                    setDistanceKm(0);
+                    setAvgTransitDays(0);
+                    setBorderPort('N/A');
+                    setHandlingFeeUsd(0);
+                    setSecurityFeeUsd(0);
+                    setEscortFeeUsd(0);
+                    setRegion('N/A');
                   }}
                   className="px-3 py-2 border border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded-md text-xs font-medium transition flex items-center gap-1.5"
                 >
