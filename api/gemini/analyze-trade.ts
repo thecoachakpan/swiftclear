@@ -189,7 +189,7 @@ Standard package unit must be provided (e.g. "bag (60kg)", "box (10kg)").
 Set default quantity to 100 and default value to 5000 if not specified.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash",
+      model: "gemini-3.1-flash-lite",
       contents: `Query: "${query}"`,
       config: {
         systemInstruction,

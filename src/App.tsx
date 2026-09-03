@@ -226,6 +226,11 @@ export default function App() {
     securityFeeUsd?: number;
     escortFeeUsd?: number;
   }) => {
+    const newOrigin = params.origin !== undefined ? params.origin : origin;
+    const newDest = params.destination !== undefined ? params.destination : destination;
+    const newComm = params.commodity !== undefined ? params.commodity : commodity;
+    const newHsCode = params.hsCode !== undefined ? params.hsCode : hsCode;
+
     if (params.origin !== undefined) setOrigin(params.origin);
     if (params.destination !== undefined) setDestination(params.destination);
     if (params.commodity !== undefined) setCommodity(params.commodity);
@@ -242,6 +247,43 @@ export default function App() {
     if (params.handlingFeeUsd !== undefined) setHandlingFeeUsd(params.handlingFeeUsd);
     if (params.securityFeeUsd !== undefined) setSecurityFeeUsd(params.securityFeeUsd);
     if (params.escortFeeUsd !== undefined) setEscortFeeUsd(params.escortFeeUsd);
+
+    // 1. Sync & select the appropriate Trade Corridor ID in the route dropdown
+    const matchedCorridor = TRADE_CORRIDORS.find(c => 
+      (c.origin.toLowerCase().includes(newOrigin.toLowerCase().split(' ')[0]) || newOrigin.toLowerCase().includes(c.origin.toLowerCase().split(' ')[0])) &&
+      (c.destination.toLowerCase().includes(newDest.toLowerCase().split(' ')[0]) || newDest.toLowerCase().includes(c.destination.toLowerCase().split(' ')[0]))
+    );
+
+    if (matchedCorridor) {
+      setSelectedCorridorId(matchedCorridor.id);
+      setDistanceKm(matchedCorridor.distanceKm);
+      setAvgTransitDays(matchedCorridor.avgTransitDays);
+      setRegion(matchedCorridor.region);
+      setBorderPort(matchedCorridor.borderPort);
+      setHandlingFeeUsd(matchedCorridor.handlingFeeUsd);
+      setSecurityFeeUsd(matchedCorridor.securityFeeUsd);
+      setEscortFeeUsd(matchedCorridor.escortFeeUsd || 0);
+    } else {
+      setSelectedCorridorId('custom');
+      setDistanceKm(750);
+      setAvgTransitDays(4);
+      setRegion('ECOWAS');
+    }
+
+    // 2. Sync & select the appropriate Agricultural Commodity Key in the cargo dropdown
+    const matchedCommodityEntry = Object.entries(TARIFF_DATABASE).find(([key, item]) => 
+      newComm.toLowerCase().includes(key) ||
+      newComm.toLowerCase().includes(item.item.toLowerCase()) ||
+      item.item.toLowerCase().includes(newComm.toLowerCase()) ||
+      (newHsCode && item.hsCode.includes(newHsCode))
+    );
+
+    if (matchedCommodityEntry) {
+      setSelectedCommodityKey(matchedCommodityEntry[0]);
+    } else {
+      setSelectedCommodityKey('custom');
+    }
+
     setManifestStatus('Validated');
   };
 
@@ -838,12 +880,32 @@ ${routeStatus.exists
                   <select
                     value={selectedCorridorId}
                     onChange={(e) => {
-                      setSelectedCorridorId(e.target.value);
+                      const val = e.target.value;
+                      setSelectedCorridorId(val);
+                      if (val && val !== 'custom') {
+                        const corridor = TRADE_CORRIDORS.find(c => c.id === val);
+                        if (corridor) {
+                          setOrigin(corridor.origin);
+                          setDestination(corridor.destination);
+                          setDistanceKm(corridor.distanceKm);
+                          setAvgTransitDays(corridor.avgTransitDays);
+                          setBorderPort(corridor.borderPort);
+                          setHandlingFeeUsd(corridor.handlingFeeUsd);
+                          setSecurityFeeUsd(corridor.securityFeeUsd);
+                          setEscortFeeUsd(corridor.escortFeeUsd || 0);
+                          setRegion(corridor.region);
+                        }
+                      }
                       setManifestStatus('Draft');
                     }}
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-xs font-semibold text-zinc-200 focus:outline-none focus:border-zinc-700 transition-colors"
                   >
                     <option value="" className="text-zinc-500">select route</option>
+                    {selectedCorridorId === 'custom' && (
+                      <option value="custom" className="bg-zinc-950 text-emerald-400 font-bold">
+                        ✨ {origin} → {destination} (Custom AI Route)
+                      </option>
+                    )}
                     {TRADE_CORRIDORS.map(c => (
                       <option key={c.id} value={c.id} className="bg-zinc-950 text-zinc-200">
                         {c.origin} → {c.destination} ({c.region})
@@ -860,12 +922,30 @@ ${routeStatus.exists
                   <select
                     value={selectedCommodityKey}
                     onChange={(e) => {
-                      setSelectedCommodityKey(e.target.value);
+                      const val = e.target.value;
+                      setSelectedCommodityKey(val);
+                      if (val && val !== 'custom') {
+                        const item = TARIFF_DATABASE[val];
+                        if (item) {
+                          setCommodity(item.item);
+                          setHsCode(item.hsCode);
+                          setBaseDutyRate(item.baseDutyRate);
+                          setAfcftaDutyRate(item.afcftaDutyRate);
+                          setVatRate(item.vat);
+                          setUnit(item.unit);
+                          setAverageWeightPerPackageKg(item.averageWeightPerPackageKg);
+                        }
+                      }
                       setManifestStatus('Draft');
                     }}
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-xs font-semibold text-zinc-200 focus:outline-none focus:border-zinc-700 transition-colors"
                   >
                     <option value="" className="text-zinc-500">select commodity</option>
+                    {selectedCommodityKey === 'custom' && (
+                      <option value="custom" className="bg-zinc-950 text-emerald-400 font-bold">
+                        ✨ {commodity} (HS {hsCode})
+                      </option>
+                    )}
                     {Object.entries(TARIFF_DATABASE).map(([key, data]) => (
                       <option key={key} value={key} className="bg-zinc-950 text-zinc-200">
                         {data.item} (HS {data.hsCode})
@@ -1000,11 +1080,29 @@ ${routeStatus.exists
                 <button
                   onClick={() => {
                     setManifestStatus('Draft');
-                    setSelectedCorridorId('');
-                    setSelectedCommodityKey('');
-                    setQuantity(0);
-                    setDeclaredValueUsd(0);
+                    setSelectedCorridorId('kano_cotonou');
+                    setSelectedCommodityKey('hibiscus');
+                    setQuantity(100);
+                    setDeclaredValueUsd(5000);
                     setUseAfCFTA(true);
+                    const corridor = TRADE_CORRIDORS[0];
+                    setOrigin(corridor.origin);
+                    setDestination(corridor.destination);
+                    setDistanceKm(corridor.distanceKm);
+                    setAvgTransitDays(corridor.avgTransitDays);
+                    setBorderPort(corridor.borderPort);
+                    setHandlingFeeUsd(corridor.handlingFeeUsd);
+                    setSecurityFeeUsd(corridor.securityFeeUsd);
+                    setEscortFeeUsd(corridor.escortFeeUsd || 0);
+                    setRegion(corridor.region);
+                    const item = TARIFF_DATABASE['hibiscus'];
+                    setCommodity(item.item);
+                    setHsCode(item.hsCode);
+                    setBaseDutyRate(item.baseDutyRate);
+                    setAfcftaDutyRate(item.afcftaDutyRate);
+                    setVatRate(item.vat);
+                    setUnit(item.unit);
+                    setAverageWeightPerPackageKg(item.averageWeightPerPackageKg);
                   }}
                   className="px-3 py-2 border border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded-md text-xs font-medium transition flex items-center gap-1.5"
                 >
