@@ -1,5 +1,9 @@
 import { WebMCPTool, ModelContext } from '../types/webmcp';
 
+// Module-level singleton: our own tool registry that always works,
+// regardless of whether Chrome ships a native navigator.modelContext.
+let _instance: LocalModelContext | null = null;
+
 class LocalModelContext implements ModelContext {
   private tools: Map<string, WebMCPTool> = new Map();
 
@@ -65,37 +69,60 @@ class LocalModelContext implements ModelContext {
   }
 }
 
+/**
+ * Initialize and return SwiftClear's own ModelContext.
+ * 
+ * IMPORTANT: We always create our own LocalModelContext rather than
+ * deferring to a native navigator.modelContext. Chrome's WebMCP flag
+ * (chrome://flags/#enable-webmcp-testing) provides a native API whose
+ * executeTool() expects a RegisteredTool object, not a string name.
+ * Using our own context avoids that incompatibility while still
+ * exposing tools for external agent discovery.
+ */
 export function initWebMCP(): ModelContext {
   if (typeof window === 'undefined') {
     return {} as ModelContext;
   }
 
-  const existingContext = navigator.modelContext || document.modelContext;
-  if (existingContext) {
-    return existingContext;
+  // Return existing singleton if already initialised
+  if (_instance) {
+    return _instance;
   }
 
-  const contextInstance = new LocalModelContext();
+  _instance = new LocalModelContext();
 
+  // Attempt to set our context on navigator/document for external
+  // agent discovery. If the native WebMCP flag has already claimed
+  // navigator.modelContext as read-only, we silently skip — the app
+  // always uses getSwiftClearContext() instead.
   try {
     Object.defineProperty(navigator, 'modelContext', {
-      value: contextInstance,
+      value: _instance,
       writable: true,
       configurable: true
     });
   } catch (e) {
-    (navigator as any).modelContext = contextInstance;
+    try { (navigator as any).modelContext = _instance; } catch (_) { /* native is non-writable, skip */ }
   }
 
   try {
     Object.defineProperty(document, 'modelContext', {
-      value: contextInstance,
+      value: _instance,
       writable: true,
       configurable: true
     });
   } catch (e) {
-    (document as any).modelContext = contextInstance;
+    try { (document as any).modelContext = _instance; } catch (_) { /* skip */ }
   }
 
-  return contextInstance;
+  return _instance;
+}
+
+/**
+ * Get the SwiftClear ModelContext singleton.
+ * Always use this instead of navigator.modelContext to avoid
+ * conflicts with Chrome's native WebMCP API.
+ */
+export function getSwiftClearContext(): ModelContext | null {
+  return _instance;
 }

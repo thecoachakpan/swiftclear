@@ -19,7 +19,7 @@ import {
   ShieldAlert,
   Info
 } from 'lucide-react';
-import { initWebMCP } from './utils/webmcpPolyfill';
+import { initWebMCP, getSwiftClearContext } from './utils/webmcpPolyfill';
 import { TARIFF_DATABASE, TRADE_CORRIDORS, computeCrossBorderDuties, CrossBorderDutyCalculation } from './data/tradeData';
 
 interface Message {
@@ -470,7 +470,7 @@ export default function App() {
     setIsAgentThinking(true);
 
     try {
-      const ctx = navigator.modelContext || document.modelContext;
+      const ctx = getSwiftClearContext();
       if (!ctx || !ctx.executeTool) {
         throw new Error("WebMCP ModelContext not found in DOM");
       }
@@ -727,7 +727,7 @@ ${routeStatus.exists
   // 8. Sandbox Run Handler
   const executeSandboxTool = async () => {
     try {
-      const ctx = navigator.modelContext || document.modelContext;
+      const ctx = getSwiftClearContext();
       if (!ctx || !ctx.executeTool) {
         throw new Error("WebMCP Context not registered.");
       }
@@ -804,7 +804,7 @@ ${routeStatus.exists
                 Registry Connection Status
               </div>
               <div className="text-[11px] font-mono text-emerald-400 flex items-center gap-1">
-                navigator.modelContext bound ({registeredTools.length} tools)
+                SwiftClear ModelContext bound ({registeredTools.length} tools)
               </div>
             </div>
           </div>
