@@ -971,27 +971,30 @@ ${routeStatus.exists
 
                 <div className="md:col-span-2 space-y-4 pl-1">
                   {/* Selected tool info */}
-                  {registeredTools.find(t => t.name === selectedSandboxTool) && (() => {
+                  {(() => {
                     const tool = registeredTools.find(t => t.name === selectedSandboxTool);
+                    if (!tool) return null;
                     return (
                       <div className="space-y-4">
                         <div>
                           <div className="text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-widest">Description</div>
-                          <p className="text-[11px] text-zinc-300 mt-1 font-medium">{tool.description}</p>
+                          <p className="text-[11px] text-zinc-300 mt-1 font-medium">{tool.description || ''}</p>
                         </div>
 
                         {/* Interactive schema properties */}
-                        <div>
-                          <div className="text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Tool Input Schema</div>
-                          <div className="bg-zinc-950 p-3 rounded border border-zinc-850 space-y-2">
-                            {Object.entries(tool.inputSchema.properties).map(([propKey, propVal]: [string, any]) => (
-                              <div key={propKey} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] border-b border-zinc-850 pb-2 last:border-0 last:pb-0">
-                                <span className="font-mono text-emerald-400 font-semibold">{propKey} <span className="text-zinc-500">({propVal.type})</span></span>
-                                <span className="text-[10px] text-zinc-400 italic max-w-[200px] truncate">{propVal.description || ''}</span>
-                              </div>
-                            ))}
+                        {tool.inputSchema && tool.inputSchema.properties && (
+                          <div>
+                            <div className="text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Tool Input Schema</div>
+                            <div className="bg-zinc-950 p-3 rounded border border-zinc-850 space-y-2">
+                              {Object.entries(tool.inputSchema.properties || {}).map(([propKey, propVal]: [string, any]) => (
+                                <div key={propKey} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] border-b border-zinc-850 pb-2 last:border-0 last:pb-0">
+                                  <span className="font-mono text-emerald-400 font-semibold">{propKey} <span className="text-zinc-500">({propVal?.type || 'string'})</span></span>
+                                  <span className="text-[10px] text-zinc-400 italic max-w-[200px] truncate">{propVal?.description || ''}</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        </div>
+                        )}
 
                         {/* Execute Sandbox trigger */}
                         <div className="flex items-center justify-between gap-3 bg-zinc-950 p-3.5 rounded border border-zinc-850">
