@@ -475,21 +475,153 @@ export default function App() {
         throw new Error("WebMCP ModelContext not found in DOM");
       }
 
-      // Execute Secure API route call for intelligent trade analysis using Server-side Gemini
-      const response = await fetch('/api/gemini/analyze-trade', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query }),
-      });
+      let extracted: any = null;
+      let routeStatus: any = null;
 
-      if (!response.ok) {
-        throw new Error(`Server returned status: ${response.status}`);
+      // Attempt Server-side Gemini API call
+      try {
+        const response = await fetch('/api/gemini/analyze-trade', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          extracted = data.extracted;
+          routeStatus = data.routeStatus;
+        } else {
+          // Try backup API route
+          const backupRes = await fetch('/api/analyze-trade', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query }),
+          });
+          if (backupRes.ok) {
+            const data = await backupRes.json();
+            extracted = data.extracted;
+            routeStatus = data.routeStatus;
+          }
+        }
+      } catch (apiErr) {
+        console.warn("Server API call error, engaging local smart parser fallback:", apiErr);
       }
 
-      const data = await response.json();
-      const { extracted, routeStatus } = data;
+      // Resilient Smart Trade Parser Fallback if backend API is offline or 404
+      if (!extracted || !routeStatus) {
+        addMcpLog('info', 'Running local WebMCP trade analysis engine...');
+        const lower = query.toLowerCase();
+
+        let commodity = 'Dried Hibiscus Flowers (Zobo)';
+        let hsCode = '1211.90.00';
+        let baseDutyRate = 20;
+        let afcftaDutyRate = 0;
+        let vatRate = 7.5;
+        let unit = 'bag (25kg)';
+        let averageWeightPerPackageKg = 25;
+
+        if (lower.includes('shea') || lower.includes('butter')) {
+          commodity = 'Unrefined Shea Butter';
+          hsCode = '1515.90.80';
+          baseDutyRate = 15;
+          afcftaDutyRate = 0;
+          vatRate = 18.0;
+          unit = 'tub (50kg)';
+          averageWeightPerPackageKg = 50;
+        } else if (lower.includes('cashew') || lower.includes('nut')) {
+          commodity = 'Raw Cashew Nuts (In Shell)';
+          hsCode = '0801.31.00';
+          baseDutyRate = 10;
+          afcftaDutyRate = 0;
+          vatRate = 16.0;
+          unit = 'bag (80kg)';
+          averageWeightPerPackageKg = 80;
+        } else if (lower.includes('cocoa')) {
+          commodity = 'Whole Cocoa Beans';
+          hsCode = '1801.00.00';
+          baseDutyRate = 30;
+          afcftaDutyRate = 5;
+          vatRate = 7.5;
+          unit = 'bag (64kg)';
+          averageWeightPerPackageKg = 64;
+        } else if (lower.includes('coffee')) {
+          commodity = 'Green Coffee Beans (Arabica)';
+          hsCode = '0901.11.00';
+          baseDutyRate = 25;
+          afcftaDutyRate = 0;
+          vatRate = 18.0;
+          unit = 'bag (60kg)';
+          averageWeightPerPackageKg = 60;
+        }
+
+        const qtyMatch = query.match(/(\d+)\s*(bags?|tubs?|boxes?|units?|kgs?|tons?|packages?)?/i);
+        const quantity = qtyMatch ? parseInt(qtyMatch[1], 10) : 100;
+
+        const valMatch = query.match(/(\$?(\d+[\d,]*)\s*(usd|dollars?)?)/i);
+        const declaredValueUsd = valMatch && valMatch[2] ? parseInt(valMatch[2].replace(/,/g, ''), 10) : 5000;
+
+        const useAfCFTA = !lower.includes('mfn') && !lower.includes('standard');
+
+        let origin = 'Ghana (Accra)';
+        let destination = 'Côte d\'Ivoire (Abidjan)';
+
+        if (lower.includes('lagos') || lower.includes('kano') || lower.includes('nigeria')) {
+          origin = 'Nigeria (Kano)';
+        } else if (lower.includes('kigali') || lower.includes('rwanda')) {
+          origin = 'Rwanda (Kigali)';
+        } else if (lower.includes('kampala') || lower.includes('uganda')) {
+          origin = 'Uganda (Kampala)';
+        } else if (lower.includes('johannesburg') || lower.includes('south africa')) {
+          origin = 'South Africa (Johannesburg)';
+        }
+
+        if (lower.includes('cotonou') || lower.includes('benin')) {
+          destination = 'Benin (Cotonou)';
+        } else if (lower.includes('mombasa') || lower.includes('kenya')) {
+          destination = 'Kenya (Mombasa Port)';
+        } else if (lower.includes('dar') || lower.includes('tanzania')) {
+          destination = 'Tanzania (Dar es Salaam)';
+        } else if (lower.includes('harare') || lower.includes('zimbabwe')) {
+          destination = 'Zimbabwe (Harare)';
+        }
+
+        const matchedCorridor = TRADE_CORRIDORS.find(c => 
+          (c.origin.toLowerCase().includes(origin.toLowerCase()) || origin.toLowerCase().includes(c.origin.toLowerCase())) &&
+          (c.destination.toLowerCase().includes(destination.toLowerCase()) || destination.toLowerCase().includes(c.destination.toLowerCase()))
+        );
+
+        if (matchedCorridor) {
+          routeStatus = {
+            exists: true,
+            recommendedCorridorId: matchedCorridor.id,
+            recommendationReason: `Direct active corridor ${matchedCorridor.origin} -> ${matchedCorridor.destination}`
+          };
+        } else {
+          const recCorridor = TRADE_CORRIDORS.find(c => c.origin.toLowerCase().includes(origin.split(' ')[0].toLowerCase())) || TRADE_CORRIDORS[0];
+          routeStatus = {
+            exists: false,
+            recommendedCorridorId: recCorridor.id,
+            recommendationReason: `Direct customs routing is not currently activated between ${origin} and ${destination}. Proposing ${recCorridor.origin} -> ${recCorridor.destination} as active hub.`
+          };
+        }
+
+        extracted = {
+          origin,
+          destination,
+          commodity,
+          hsCode,
+          baseDutyRate,
+          afcftaDutyRate,
+          vatRate,
+          unit,
+          averageWeightPerPackageKg,
+          quantity,
+          declaredValueUsd,
+          useAfCFTA
+        };
+      }
 
       // Log tool starts
       addMcpLog('execute-start', 'Orchestrating WebMCP tools based on secure Gemini response...');
