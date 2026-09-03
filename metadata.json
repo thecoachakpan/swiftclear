@@ -1,0 +1,6 @@
+{
+  "name": "SwiftClear",
+  "description": "SwiftClear is a cross-border trade & tariff companion for AfCFTA corridors, utilizing the W3C WebMCP protocol to orchestrate harmonized tariffs, clearances, and manifests.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
