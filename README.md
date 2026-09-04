@@ -15,7 +15,7 @@ Built for **The WebMCP Challenge**, SwiftClear exposes standard WebMCP client to
 
 - **Upgraded AI Engine**: Powered by Google's **`gemini-3.1-flash-lite`** via the `@google/genai` SDK for lightning-fast, structured JSON trade intelligence, commodity classification, HS tariff estimation, and AfCFTA transport corridor matching.
 - **Robust Fallback Operations**: Includes comprehensive fallback data models ensuring 100% operational uptime and zero UI breakdown even during network timeouts or missing credentials.
-- **Dynamic Corridor & Form Auto-Sync**: Seamless tool form synchronization (`populate_customs_manifest`) automatically matches origin/destination countries to official AfCFTA trade corridors (e.g., Abidjan-Lagos, Northern Corridor), calculates transit distances/durations, assigns cargo classifications, and updates full UI state.
+- **Dynamic Corridor & Form Auto-Sync**: Seamless tool form synchronization (`populate_customs_manifest`) automatically matches origin/destination countries to official AfCFTA trade corridors (e.g., Abidjan-Kano, Accra-Kampala), calculates transit distances/durations, assigns cargo classifications, and updates full UI state.
 - **Clean Default & Reset State**: Resets to clean unpopulated form inputs upon page reload or clicking **Reset Form**, giving agents and users a predictable state.
 
 ---
@@ -34,7 +34,7 @@ SwiftClear registers 3 core WebMCP client-side tools available to browser agents
    - **Schema**: `{ hsCode: string, declaredValueUsd: number, quantity: number, origin: string, destination: string, useAfCFTA: boolean }`
 
 3. **`populate_customs_manifest`**:
-   - **Description**: Surgically updates reactive form state and DOM UI components directly on the live page. Automatically handles custom commodities, route matching, cargo class selection, and tariff re-calculation.
+   - **Description**: Updates reactive form state and DOM UI components directly on the live page. Automatically handles custom commodities, route matching, cargo class selection, and tariff re-calculation.
    - **Schema**: `{ origin: string, destination: string, commodity: string, hsCode: string, quantity: number, declaredValueUsd: number, useAfCFTA: boolean }`
 
 ---
